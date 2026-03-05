@@ -190,6 +190,29 @@ prefix, id = ulid.parse_prefixed("user_01arz3ndektsv4rrffq69g5fav")
 - **`Generator` with node ID clobbers monotonic high bits.** If intra-millisecond ordering matters more than distributed uniqueness, use `make()` instead.
 - **Monotonic overflow is an error, not a retry.** When `ErrMonotonicOverflow` is raised, the caller is responsible for handling it.
 
+## Benchmarks
+
+Measured with `pytest-benchmark` on Python 3.14, AMD EPYC 7763 (GitHub Actions CI). Pure Python, no C extensions.
+
+| Operation | Median | Throughput |
+|---|---|---|
+| `marshal_binary()` | 93 ns | 10.7M ops/sec |
+| `compare()` | 122 ns | 8.1M ops/sec |
+| `now()` | 201 ns | 4.9M ops/sec |
+| `new()` (crypto entropy) | 2.6 µs | 372K ops/sec |
+| `string()` | 3.1 µs | 320K ops/sec |
+| `parse()` | 3.7 µs | 260K ops/sec |
+| `parse_strict()` | 5.0 µs | 198K ops/sec |
+| `make()` | 5.5 µs | 180K ops/sec |
+| `new_generator().make()` | 5.5 µs | 180K ops/sec |
+| `new_generator().make_prefixed()` | 9.3 µs | 106K ops/sec |
+
+Run benchmarks locally:
+
+```sh
+hatch run bench
+```
+
 ## API
 
 ### Constructors
@@ -269,29 +292,6 @@ prefix, id = ulid.parse_prefixed("user_01arz3ndektsv4rrffq69g5fav")
 | `gen.make_prefixed(p)` | Generate a prefixed ULID string. |
 | `gen.new(ms)` | Generate with explicit timestamp. |
 | `gen.node_id()` | Get `(node_id, has_node)`. |
-
-## Benchmarks
-
-Measured with `pytest-benchmark` on Python 3.14, AMD EPYC 7763 (GitHub Actions CI). Pure Python, no C extensions.
-
-| Operation | Median | Throughput |
-|---|---|---|
-| `marshal_binary()` | 93 ns | 10.7M ops/sec |
-| `compare()` | 122 ns | 8.1M ops/sec |
-| `now()` | 201 ns | 4.9M ops/sec |
-| `new()` (crypto entropy) | 2.6 µs | 372K ops/sec |
-| `string()` | 3.1 µs | 320K ops/sec |
-| `parse()` | 3.7 µs | 260K ops/sec |
-| `parse_strict()` | 5.0 µs | 198K ops/sec |
-| `make()` | 5.5 µs | 180K ops/sec |
-| `new_generator().make()` | 5.5 µs | 180K ops/sec |
-| `new_generator().make_prefixed()` | 9.3 µs | 106K ops/sec |
-
-Run benchmarks locally:
-
-```sh
-hatch run bench
-```
 
 ## Contributing
 
