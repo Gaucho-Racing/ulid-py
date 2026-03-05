@@ -114,5 +114,5 @@ class LockedMonotonicReader:
         return self.read(n)
 
 
-def Monotonic(entropy: Callable[[int], bytes], inc: int) -> MonotonicEntropy:
+def monotonic(entropy: Callable[[int], bytes], inc: int) -> MonotonicEntropy:
     return MonotonicEntropy(entropy, inc)

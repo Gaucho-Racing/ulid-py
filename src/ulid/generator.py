@@ -4,8 +4,8 @@ import os
 import threading
 from collections.abc import Callable
 
-from ulid.monotonic import Monotonic, MonotonicEntropy
-from ulid.ulid import ULID, New, Now
+from ulid.monotonic import MonotonicEntropy, monotonic
+from ulid.ulid import ULID, new, now
 
 
 class Generator:
@@ -13,14 +13,14 @@ class Generator:
 
     def __init__(self) -> None:
         self._mu = threading.Lock()
-        self._entropy: MonotonicEntropy = Monotonic(os.urandom, 0)
+        self._entropy: MonotonicEntropy = monotonic(os.urandom, 0)
         self._node_id: int = 0
         self._has_node: bool = False
         self._prefix: str = ""
 
     def make(self) -> ULID:
         with self._mu:
-            uid = New(Now(), self._entropy)
+            uid = new(now(), self._entropy)
             if self._has_node:
                 buf = bytearray(uid._data)
                 buf[6] = (self._node_id >> 8) & 0xFF
@@ -37,7 +37,7 @@ class Generator:
 
     def new(self, ms: int) -> ULID:
         with self._mu:
-            uid = New(ms, self._entropy)
+            uid = new(ms, self._entropy)
             if self._has_node:
                 buf = bytearray(uid._data)
                 buf[6] = (self._node_id >> 8) & 0xFF
@@ -52,7 +52,7 @@ class Generator:
 GeneratorOption = Callable[[Generator], None]
 
 
-def WithNodeID(node_id: int) -> GeneratorOption:
+def with_node_id(node_id: int) -> GeneratorOption:
     def apply(g: Generator) -> None:
         g._node_id = node_id
         g._has_node = True
@@ -60,21 +60,21 @@ def WithNodeID(node_id: int) -> GeneratorOption:
     return apply
 
 
-def WithEntropy(reader: Callable[[int], bytes]) -> GeneratorOption:
+def with_entropy(reader: Callable[[int], bytes]) -> GeneratorOption:
     def apply(g: Generator) -> None:
-        g._entropy = Monotonic(reader, 0)
+        g._entropy = monotonic(reader, 0)
 
     return apply
 
 
-def WithPrefix(prefix: str) -> GeneratorOption:
+def with_prefix(prefix: str) -> GeneratorOption:
     def apply(g: Generator) -> None:
         g._prefix = prefix
 
     return apply
 
 
-def NewGenerator(*opts: GeneratorOption) -> Generator:
+def new_generator(*opts: GeneratorOption) -> Generator:
     g = Generator()
     for opt in opts:
         opt(g)

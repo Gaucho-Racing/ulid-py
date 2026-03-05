@@ -11,7 +11,7 @@ A blazing fast, production-grade [ULID](https://github.com/ulid/spec) implementa
 - **Distributed uniqueness** — `Generator` with node ID partitioning guarantees collision-free IDs across up to 65,536 nodes without coordination
 - **Monotonic sorting** — IDs generated within the same millisecond are strictly ordered
 - **Fully unrolled encoding** — Crockford Base32 encode/decode with no loops
-- **Thread-safe** — `Make()`, `Generator`, and `DefaultEntropy()` are safe for concurrent use
+- **Thread-safe** — `make()`, `Generator`, and `default_entropy()` are safe for concurrent use
 - **128-bit UUID compatible** — drop-in replacement for UUID columns in databases
 - **Fully typed** — PEP 561 compliant with `py.typed` marker, passes `mypy --strict`
 - **Zero runtime dependencies** — only stdlib
@@ -30,25 +30,25 @@ pip install gaucho-ulid
 import ulid
 
 # Generate a ULID
-id = ulid.Make()
+id = ulid.make()
 print(id)  # 01jgy5fz7rqv8s3n0x4m6k2w1h
 
 # With a prefix
 print(id.prefixed("user"))  # user_01jgy5fz7rqv8s3n0x4m6k2w1h
 
 # Parse it back
-parsed = ulid.Parse("01jgy5fz7rqv8s3n0x4m6k2w1h")
+parsed = ulid.parse("01jgy5fz7rqv8s3n0x4m6k2w1h")
 print(parsed.time())       # Unix millisecond timestamp
 print(parsed.timestamp())  # datetime
 
 # Parse prefixed IDs
-prefix, parsed = ulid.ParsePrefixed("user_01jgy5fz7rqv8s3n0x4m6k2w1h")
+prefix, parsed = ulid.parse_prefixed("user_01jgy5fz7rqv8s3n0x4m6k2w1h")
 print(prefix)  # "user"
 
 # Use a Generator for distributed systems
-gen = ulid.NewGenerator(
-    ulid.WithNodeID(1),
-    ulid.WithPrefix("evt"),
+gen = ulid.new_generator(
+    ulid.with_node_id(1),
+    ulid.with_prefix("evt"),
 )
 print(gen.make_prefixed())  # evt_01jgy5fz7r...
 ```
@@ -100,9 +100,9 @@ The encoding and decoding are **fully unrolled**: every bit extraction/insertion
 
 **Overflow check**: 26 Base32 characters technically encode 130 bits, but a ULID only uses 128. The first character is restricted to values `0`–`7` (3 bits). Any ULID string starting with `8` or higher is rejected with `ErrOverflow`. The largest valid ULID is `7zzzzzzzzzzzzzzzzzzzzzzzzz`.
 
-#### `Parse` vs `ParseStrict`
+#### `parse` vs `parse_strict`
 
-`Parse` skips character validation for speed. Invalid characters (like `I`, `L`, `O`, `U`) will silently produce wrong bits rather than returning an error. Use `ParseStrict` when accepting untrusted input. Use `Parse` when you control the input (e.g., reading from your own database).
+`parse` skips character validation for speed. Invalid characters (like `I`, `L`, `O`, `U`) will silently produce wrong bits rather than returning an error. Use `parse_strict` when accepting untrusted input. Use `parse` when you control the input (e.g., reading from your own database).
 
 ### Monotonicity
 
@@ -112,19 +112,19 @@ When multiple ULIDs are generated within the same millisecond, the spec requires
 import os
 import ulid
 
-entropy = ulid.Monotonic(os.urandom, 0)
-ms = ulid.Now()
+entropy = ulid.monotonic(os.urandom, 0)
+ms = ulid.now()
 
 # All three share the same millisecond: entropy is incremented, not re-randomized
-id1 = ulid.New(ms, entropy)  # random entropy R
-id2 = ulid.New(ms, entropy)  # R + random_increment
-id3 = ulid.New(ms, entropy)  # R + random_increment + random_increment
+id1 = ulid.new(ms, entropy)  # random entropy R
+id2 = ulid.new(ms, entropy)  # R + random_increment
+id3 = ulid.new(ms, entropy)  # R + random_increment + random_increment
 # id1 < id2 < id3 guaranteed
 ```
 
 **Overflow behavior**: The 80-bit entropy space is tracked using a custom `_UInt80` type (`uint16` high + `uint64` low) with explicit masking (since Python integers are arbitrary precision). When incrementing would overflow, `ErrMonotonicOverflow` is raised. The library **never** silently wraps around or advances the timestamp.
 
-**Thread safety**: `MonotonicEntropy` itself is **not** thread-safe. For concurrent use, wrap it with `LockedMonotonicReader` (which adds a `threading.Lock`), or use `DefaultEntropy()` / `Make()` which do this automatically. The `Generator` class also handles its own locking internally.
+**Thread safety**: `MonotonicEntropy` itself is **not** thread-safe. For concurrent use, wrap it with `LockedMonotonicReader` (which adds a `threading.Lock`), or use `default_entropy()` / `make()` which do this automatically. The `Generator` class also handles its own locking internally.
 
 ### Entropy Sources
 
@@ -134,7 +134,7 @@ The library accepts any `Callable[[int], bytes]` as an entropy source:
 |---|---|---|
 | `os.urandom` | Cryptographic | Default. Uses OS entropy pool. |
 | Custom callable | Varies | Any function `(int) -> bytes`. |
-| `Monotonic(r, inc)` | Inherits from `r` | Increments within same ms instead of re-reading. |
+| `monotonic(r, inc)` | Inherits from `r` | Increments within same ms instead of re-reading. |
 | `None` | None | Zero entropy. Useful for timestamp-only IDs. |
 
 ### Distributed Uniqueness
@@ -142,7 +142,7 @@ The library accepts any `Callable[[int], bytes]` as an entropy source:
 For multi-node deployments, the `Generator` class supports embedding a **16-bit node ID** in the first 2 bytes of the entropy field:
 
 ```python
-gen = ulid.NewGenerator(ulid.WithNodeID(42))
+gen = ulid.new_generator(ulid.with_node_id(42))
 id = gen.make()
 ```
 
@@ -161,15 +161,15 @@ Two generators with different node IDs **cannot** produce the same ULID, even wi
 Prefixed IDs are a library extension for entity-scoped identifiers:
 
 ```python
-id = ulid.Make()
+id = ulid.make()
 id.prefixed("user")  # "user_01arz3ndektsv4rrffq69g5fav"
 id.prefixed("txn")   # "txn_01arz3ndektsv4rrffq69g5fav"
 ```
 
-The prefix is **not** part of the ULID itself. `ParsePrefixed` splits on the first `_` and parses the ULID portion:
+The prefix is **not** part of the ULID itself. `parse_prefixed` splits on the first `_` and parses the ULID portion:
 
 ```python
-prefix, id = ulid.ParsePrefixed("user_01arz3ndektsv4rrffq69g5fav")
+prefix, id = ulid.parse_prefixed("user_01arz3ndektsv4rrffq69g5fav")
 # prefix = "user", id = the parsed ULID
 ```
 
@@ -178,16 +178,16 @@ prefix, id = ulid.ParsePrefixed("user_01arz3ndektsv4rrffq69g5fav")
 | Behavior | Official Spec | This Library |
 |---|---|---|
 | **String case** | Uppercase (`01ARZ3NDEK...`) | Lowercase (`01arz3ndek...`). Parsing remains case-insensitive. |
-| **Prefixed IDs** | Not specified | Supported via `prefixed()` and `ParsePrefixed()`. |
-| **Node ID partitioning** | Not specified | Supported via `Generator` with `WithNodeID()`. |
+| **Prefixed IDs** | Not specified | Supported via `prefixed()` and `parse_prefixed()`. |
+| **Node ID partitioning** | Not specified | Supported via `Generator` with `with_node_id()`. |
 | **Excluded letter handling** | Crockford spec maps `I`→`1`, `L`→`1`, `O`→`0` during decoding | Not mapped. `I`, `L`, `O`, `U` are treated as invalid in strict mode and produce undefined results in non-strict mode. |
 
 ### Footguns
 
-- **`Parse` does not validate characters.** Use `ParseStrict` for untrusted input.
-- **`MonotonicEntropy` is not thread-safe.** Using it from multiple threads without `LockedMonotonicReader` will corrupt state. `Make()` and `Generator` handle this for you.
+- **`parse` does not validate characters.** Use `parse_strict` for untrusted input.
+- **`MonotonicEntropy` is not thread-safe.** Using it from multiple threads without `LockedMonotonicReader` will corrupt state. `make()` and `Generator` handle this for you.
 - **`bytes()` and `entropy()` return the underlying immutable bytes.** Since `_data` is immutable `bytes`, no copy is needed.
-- **`Generator` with node ID clobbers monotonic high bits.** If intra-millisecond ordering matters more than distributed uniqueness, use `Make()` instead.
+- **`Generator` with node ID clobbers monotonic high bits.** If intra-millisecond ordering matters more than distributed uniqueness, use `make()` instead.
 - **Monotonic overflow is an error, not a retry.** When `ErrMonotonicOverflow` is raised, the caller is responsible for handling it.
 
 ## API
@@ -196,14 +196,14 @@ prefix, id = ulid.ParsePrefixed("user_01arz3ndektsv4rrffq69g5fav")
 
 | Function | Description |
 |---|---|
-| `Make()` | Generate a ULID with current time and default entropy. Thread-safe. |
-| `New(ms, entropy)` | Generate with explicit timestamp and entropy source. |
-| `MustNew(ms, entropy)` | Like `New` (raises on error in Python). |
-| `Parse(s)` | Decode a 26-char Base32 string. Case-insensitive. |
-| `ParseStrict(s)` | Like `Parse` with character validation. |
-| `ParsePrefixed(s)` | Parse a `prefix_ulid` string, returning `(prefix, ULID)`. |
-| `MustParse(s)` | Like `Parse` (raises on error in Python). |
-| `MustParseStrict(s)` | Like `ParseStrict` (raises on error in Python). |
+| `make()` | Generate a ULID with current time and default entropy. Thread-safe. |
+| `new(ms, entropy)` | Generate with explicit timestamp and entropy source. |
+| `must_new(ms, entropy)` | Like `new` (raises on error in Python). |
+| `parse(s)` | Decode a 26-char Base32 string. Case-insensitive. |
+| `parse_strict(s)` | Like `parse` with character validation. |
+| `parse_prefixed(s)` | Parse a `prefix_ulid` string, returning `(prefix, ULID)`. |
+| `must_parse(s)` | Like `parse` (raises on error in Python). |
+| `must_parse_strict(s)` | Like `parse_strict` (raises on error in Python). |
 
 ### ULID Methods
 
@@ -245,26 +245,26 @@ prefix, id = ulid.ParsePrefixed("user_01arz3ndektsv4rrffq69g5fav")
 
 | Function | Description |
 |---|---|
-| `Now()` | Current UTC Unix milliseconds. |
-| `Timestamp(dt)` | Convert `datetime` to Unix ms. |
-| `Time(ms)` | Convert Unix ms to `datetime`. |
-| `MaxTime()` | Maximum encodable timestamp (year 10889). |
+| `now()` | Current UTC Unix milliseconds. |
+| `timestamp(dt)` | Convert `datetime` to Unix ms. |
+| `time(ms)` | Convert Unix ms to `datetime`. |
+| `max_time()` | Maximum encodable timestamp (year 10889). |
 
 ### Entropy
 
 | Function | Description |
 |---|---|
-| `DefaultEntropy()` | Process-global thread-safe monotonic entropy (`os.urandom`). |
-| `Monotonic(r, inc)` | Create a monotonic entropy source wrapping any callable. |
+| `default_entropy()` | Process-global thread-safe monotonic entropy (`os.urandom`). |
+| `monotonic(r, inc)` | Create a monotonic entropy source wrapping any callable. |
 
 ### Generator
 
 | Function/Method | Description |
 |---|---|
-| `NewGenerator(*opts)` | Create a generator with options. |
-| `WithNodeID(id)` | Embed a 16-bit node ID for distributed uniqueness. |
-| `WithEntropy(r)` | Use a custom entropy source. |
-| `WithPrefix(p)` | Set a default prefix. |
+| `new_generator(*opts)` | Create a generator with options. |
+| `with_node_id(id)` | Embed a 16-bit node ID for distributed uniqueness. |
+| `with_entropy(r)` | Use a custom entropy source. |
+| `with_prefix(p)` | Set a default prefix. |
 | `gen.make()` | Generate a ULID. Thread-safe. |
 | `gen.make_prefixed(p)` | Generate a prefixed ULID string. |
 | `gen.new(ms)` | Generate with explicit timestamp. |

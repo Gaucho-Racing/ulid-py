@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 import json
 import os
-import time
+import time as _time
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Union
 
@@ -395,7 +395,7 @@ class ULID:
         return d[5] | (d[4] << 8) | (d[3] << 16) | (d[2] << 24) | (d[1] << 32) | (d[0] << 40)
 
     def timestamp(self) -> datetime:
-        return Time(self.time())
+        return time(self.time())
 
     def entropy(self) -> builtins.bytes:
         return self._data[6:]
@@ -575,12 +575,7 @@ def _parse(s: str, strict: bool) -> ULID:
     return ULID(data)
 
 
-# ---------------------------------------------------------------------------
-# Module-level functions (PascalCase for Go API parity)
-# ---------------------------------------------------------------------------
-
-
-def New(ms: int, entropy: EntropyReader = None) -> ULID:
+def new(ms: int, entropy: EntropyReader = None) -> ULID:
     if ms > MAX_TIME:
         raise ErrBigTime()
     buf = bytearray(16)
@@ -604,8 +599,8 @@ def New(ms: int, entropy: EntropyReader = None) -> ULID:
     return ULID(bytes(buf))
 
 
-def MustNew(ms: int, entropy: EntropyReader = None) -> ULID:
-    return New(ms, entropy)
+def must_new(ms: int, entropy: EntropyReader = None) -> ULID:
+    return new(ms, entropy)
 
 
 _default_entropy: EntropyReader = None
@@ -615,26 +610,26 @@ _default_entropy_initialized = False
 def _get_default_entropy() -> EntropyReader:
     global _default_entropy, _default_entropy_initialized
     if not _default_entropy_initialized:
-        from ulid.monotonic import LockedMonotonicReader, Monotonic
+        from ulid.monotonic import LockedMonotonicReader, monotonic
 
-        _default_entropy = LockedMonotonicReader(Monotonic(os.urandom, 0))
+        _default_entropy = LockedMonotonicReader(monotonic(os.urandom, 0))
         _default_entropy_initialized = True
     return _default_entropy
 
 
-def Make() -> ULID:
-    return MustNew(Now(), _get_default_entropy())
+def make() -> ULID:
+    return must_new(now(), _get_default_entropy())
 
 
-def Parse(s: str) -> ULID:
+def parse(s: str) -> ULID:
     return _parse(s, False)
 
 
-def ParseStrict(s: str) -> ULID:
+def parse_strict(s: str) -> ULID:
     return _parse(s, True)
 
 
-def ParsePrefixed(s: str) -> tuple[str, ULID]:
+def parse_prefixed(s: str) -> tuple[str, ULID]:
     idx = s.find("_")
     if idx == -1:
         raise ErrInvalidPrefix()
@@ -645,31 +640,31 @@ def ParsePrefixed(s: str) -> tuple[str, ULID]:
     return prefix, _parse(ulid_part, False)
 
 
-def MustParse(s: str) -> ULID:
-    return Parse(s)
+def must_parse(s: str) -> ULID:
+    return parse(s)
 
 
-def MustParseStrict(s: str) -> ULID:
-    return ParseStrict(s)
+def must_parse_strict(s: str) -> ULID:
+    return parse_strict(s)
 
 
-def Now() -> int:
-    return int(time.time() * 1000)
+def now() -> int:
+    return int(_time.time() * 1000)
 
 
-def Timestamp(dt: datetime) -> int:
+def timestamp(dt: datetime) -> int:
     return int(dt.timestamp() * 1000)
 
 
-def Time(ms: int) -> datetime:
+def time(ms: int) -> datetime:
     return datetime.fromtimestamp(ms / 1000.0, tz=timezone.utc)
 
 
-def MaxTime() -> int:
+def max_time() -> int:
     return MAX_TIME
 
 
-def DefaultEntropy() -> EntropyReader:
+def default_entropy() -> EntropyReader:
     return _get_default_entropy()
 
 
