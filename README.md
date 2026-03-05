@@ -272,7 +272,7 @@ prefix, id = ulid.parse_prefixed("user_01arz3ndektsv4rrffq69g5fav")
 
 ## Benchmarks
 
-Measured with `pytest-benchmark` on Python 3.14 (Apple Silicon). Pure Python, no C extensions.
+Measured with `pytest-benchmark` on Python 3.14 (GitHub Actions runner). Pure Python, no C extensions.
 
 | Operation | Median | Throughput |
 |---|---|---|
