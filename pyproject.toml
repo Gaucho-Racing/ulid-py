@@ -1,0 +1,67 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gaucho-ulid"
+version = "0.1.0"
+description = "A blazing fast, production-grade ULID implementation in Python"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{ name = "Gaucho Racing" }]
+keywords = ["ulid", "uuid", "identifier", "sortable"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ulid"]
+
+[project.urls]
+Homepage = "https://github.com/gaucho-racing/ulid-py"
+Repository = "https://github.com/gaucho-racing/ulid-py"
+Issues = "https://github.com/gaucho-racing/ulid-py/issues"
+
+[tool.hatch.envs.default]
+dependencies = [
+    "pytest",
+    "pytest-benchmark",
+    "ruff",
+    "mypy",
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest tests/ {args}"
+bench = "pytest tests/test_benchmark.py --benchmark-enable {args}"
+lint = "ruff check src/ tests/"
+fmt = "ruff format src/ tests/"
+typecheck = "mypy src/"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM"]
+ignore = ["N802", "N818"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011", "SIM105"]
+
+[tool.mypy]
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+addopts = "--benchmark-disable"
