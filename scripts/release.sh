@@ -5,11 +5,6 @@ if ! command -v gh &> /dev/null; then
     exit 1
 fi
 
-if ! command -v hatch &> /dev/null; then
-    echo "Hatch is not installed. Please install it to proceed."
-    exit 1
-fi
-
 latest=$(gh release view --json tagName -q '.tagName' 2>/dev/null)
 if [ -z "$latest" ]; then
     echo "No existing releases found."
@@ -38,7 +33,4 @@ git push origin "v$version"
 
 gh release create "v$version" --generate-notes
 
-hatch build
-hatch publish
-
-echo "Package released successfully for version v$version"
+echo "Release v$version created. PyPI publish will be triggered automatically."
