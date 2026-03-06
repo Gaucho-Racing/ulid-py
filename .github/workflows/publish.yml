@@ -14,6 +14,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Set version from tag
+        run: sed -i "s/^version = .*/version = \"${GITHUB_REF_NAME#v}\"/" pyproject.toml
+
       - name: Install build dependencies
         run: pip install build twine
 
