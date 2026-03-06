@@ -1,7 +1,7 @@
 # ulid-py
 
 [![CI](https://github.com/gaucho-racing/ulid-py/actions/workflows/ci.yml/badge.svg)](https://github.com/gaucho-racing/ulid-py/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/ulid-py.svg)](https://pypi.org/project/ulid-py/)
+[![PyPI](https://img.shields.io/pypi/v/gr-ulid.svg)](https://pypi.org/project/gr-ulid/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A blazing fast, production-grade [ULID](https://github.com/ulid/spec) implementation in Python. Designed to provide a consistent, ergonomic identifier format, ulid-py is currently used across many of Gaucho Racing's services and projects.
@@ -21,7 +21,7 @@ A blazing fast, production-grade [ULID](https://github.com/ulid/spec) implementa
 ### Installing
 
 ```sh
-pip install ulid-py
+pip install gr-ulid
 ```
 
 ### Usage
