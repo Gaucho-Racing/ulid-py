@@ -5,32 +5,28 @@ if ! command -v gh &> /dev/null; then
     exit 1
 fi
 
-latest=$(gh release view --json tagName -q '.tagName' 2>/dev/null)
-if [ -z "$latest" ]; then
-    echo "No existing releases found."
-else
-    echo "Latest release: $latest"
-fi
+current_version=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+echo "Current version: $current_version"
 
-read -p "Enter the new version: " version
+read -p "New version: " version
+
 if [ -z "$version" ]; then
-    echo "No version provided. Aborting."
+    echo "Version cannot be empty."
     exit 1
 fi
 
 # Strip leading 'v' if provided
 version="${version#v}"
 
-echo ""
-read -p "This will release v$version. Continue? (y/N): " confirm
-if [ "$confirm" != "y" ]; then
-    echo "Aborted."
-    exit 1
-fi
+sed -i '' "s/^version = \".*\"/version = \"$version\"/" pyproject.toml
+
+git add pyproject.toml
+git commit -m "release v$version"
+git push origin main
 
 git tag "v$version" -m "Release version $version"
 git push origin "v$version"
 
 gh release create "v$version" --generate-notes
 
-echo "Release v$version created. PyPI publish will be triggered automatically."
+echo "Release v$version created. The publish workflow will upload to PyPI."
